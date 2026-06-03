@@ -1,0 +1,15 @@
+# Reshimit MCP — TLS reverse proxy.
+#
+# Caddy automatically obtains and renews a Let's Encrypt certificate for the
+# hostname below (set via RESHIMIT_PUBLIC_HOST in docker-compose.yml) and proxies
+# everything to the loopback-bound MCP server on port 8000.
+#
+# Requirements:
+#   - The hostname must publicly resolve to this server's IP.
+#   - Inbound TCP 80 (ACME HTTP challenge + redirect) and 443 (serving) must be
+#     reachable from the internet.
+#
+# The MCP endpoint is then:  https://<RESHIMIT_PUBLIC_HOST>/mcp
+{$RESHIMIT_PUBLIC_HOST} {
+	reverse_proxy localhost:8000
+}

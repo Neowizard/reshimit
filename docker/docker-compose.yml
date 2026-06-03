@@ -1,0 +1,70 @@
+services:
+  backend:
+    build:
+      context: ..
+      dockerfile: docker/backend.dockerfile
+    network_mode: "host"
+    volumes:
+      - ../backend/data:/app/data
+    environment:
+      - FLASK_ENV=production
+
+  frontend:
+    build:
+      context: ..
+      dockerfile: docker/frontend.dockerfile
+      args:
+        # Backend URL the browser hits directly (plain HTTP on 4434). Derived from
+        # the public host set in docker/.env (see docker/.env.example).
+        - NEXT_PUBLIC_BACKEND_URL=http://${RESHIMIT_PUBLIC_HOST:?set RESHIMIT_PUBLIC_HOST in docker/.env}:4434
+    network_mode: "host"
+    depends_on:
+      - backend
+    environment:
+      - PORT=4433
+
+  mcp:
+    build:
+      context: ..
+      dockerfile: docker/mcp.dockerfile
+    network_mode: "host"
+    depends_on:
+      - backend
+    environment:
+      - RESHIMIT_BACKEND_URL=http://localhost:4434
+      - RESHIMIT_MCP_PORT=8000
+      # Bind loopback only: the public entrypoint is the caddy service (TLS on
+      # 443), which proxies in over localhost. Port 8000 is never exposed.
+      - RESHIMIT_MCP_HOST=127.0.0.1
+      # Authless: Claude's web/mobile connector can't send a static bearer token,
+      # so auth is turned off here and the endpoint is guarded instead by the
+      # loopback bind + the caddy TLS proxy + a host firewall that limits 443 to
+      # Anthropic's egress IPs (see README). For token auth, drop this to "token".
+      - RESHIMIT_MCP_AUTH=none
+      # Requests arrive via caddy under the public hostname, so the SDK's
+      # DNS-rebinding protection (localhost-only by default) would 421 them.
+      # "*" turns host checking off; or list the public host(s) explicitly.
+      - RESHIMIT_MCP_ALLOWED_HOSTS=*
+
+  # TLS-terminating reverse proxy. Fetches + auto-renews a Let's Encrypt cert for
+  # RESHIMIT_PUBLIC_HOST and proxies https://<host>/mcp -> the loopback mcp service.
+  # Needs inbound ports 80 (ACME challenge) and 443 (serving) open on the host.
+  caddy:
+    image: caddy:2
+    network_mode: "host"
+    depends_on:
+      - mcp
+    environment:
+      # The public hostname clients hit. Must resolve to this server's IP.
+      # Set in the untracked docker/.env file (see docker/.env.example).
+      - RESHIMIT_PUBLIC_HOST=${RESHIMIT_PUBLIC_HOST:?set RESHIMIT_PUBLIC_HOST in docker/.env}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    restart: unless-stopped
+
+volumes:
+  caddy_data:
+  caddy_config:
+

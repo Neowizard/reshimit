@@ -1,0 +1,14 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+.overlap-button {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.x1 {position: absolute;left: 30%;}
+
+.x2 {position: absolute;left: 40%;}
+
