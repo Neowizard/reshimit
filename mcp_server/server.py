@@ -42,6 +42,11 @@ Configuration (environment variables):
                           localhost only (the SDK default); "*" = accept any host
                           (token is the trust boundary); or a comma-separated list
                           of host[:port] to allow alongside localhost.
+    RESHIMIT_MCP_CORS_ORIGINS
+                          Origins to allow in CORS responses. Default: "*" (the
+                          bearer token is the trust boundary). Set to a
+                          comma-separated list (e.g. "https://claude.ai") to
+                          restrict which browser origins may call the server.
 """
 
 from __future__ import annotations
@@ -56,6 +61,7 @@ import httpx
 import uvicorn
 from mcp.server.fastmcp import FastMCP
 from mcp.server.transport_security import TransportSecuritySettings
+from starlette.middleware.cors import CORSMiddleware
 
 BACKEND_URL = os.environ.get("RESHIMIT_BACKEND_URL", "http://localhost:4434").rstrip("/")
 DEFAULT_ROUTE = os.environ.get("RESHIMIT_ROUTE") or None
@@ -80,6 +86,9 @@ MCP_AUTH = os.environ.get("RESHIMIT_MCP_AUTH", "token").strip().lower()
 #   "*"    -> disable host checking entirely (the bearer token is the boundary)
 #   a comma-separated list of host[:port] -> allow those in addition to localhost
 MCP_ALLOWED_HOSTS = os.environ.get("RESHIMIT_MCP_ALLOWED_HOSTS")
+# CORS origins browsers are allowed to call from. Default "*" since the bearer token
+# is the trust boundary. Set to a comma-separated list to restrict.
+MCP_CORS_ORIGINS = os.environ.get("RESHIMIT_MCP_CORS_ORIGINS", "*")
 
 # Colors the frontend knows how to render. Anything else won't show a swatch.
 VALID_COLORS = {"red", "pink", "purple", "blue", "teal", "green", "yellow", "white"}
@@ -493,6 +502,15 @@ def build_app():
     app = mcp.streamable_http_app()
     if MCP_AUTH != "none":
         app.add_middleware(TokenAuthMiddleware, token=MCP_TOKEN)
+    # CORS must be outermost so browser preflight (OPTIONS) is answered before
+    # the auth check runs. Default allows all origins; token auth is the boundary.
+    origins = [o.strip() for o in MCP_CORS_ORIGINS.split(",") if o.strip()]
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=origins,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
     return app
 
 

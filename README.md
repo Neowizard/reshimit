@@ -120,6 +120,7 @@ todos by `todo_index` within a list (see `get_lists`).
 | `RESHIMIT_MCP_TOKEN` | _(random)_ | Bearer token clients must present. If unset, a fresh one is generated on each boot and printed |
 | `RESHIMIT_MCP_AUTH` | `token` | `token` requires the bearer token on every request; `none` disables auth entirely (see [Exposing it to Claude web/mobile](#exposing-it-to-claude-webmobile)) |
 | `RESHIMIT_MCP_ALLOWED_HOSTS` | _(localhost only)_ | Hosts accepted in the `Host`/`Origin` headers. Needed when reaching the server under a public name (see note below). `*` = accept any host; or a comma-separated list of `host[:port]` |
+| `RESHIMIT_MCP_CORS_ORIGINS` | `*` | CORS origins browsers may call from. Default allows all (the bearer token is the trust boundary). Set to a comma-separated list (e.g. `https://claude.ai`) to restrict |
 
 > **Reaching it under a public hostname?** The MCP SDK enables DNS-rebinding
 > protection and, by default, only trusts `localhost`/`127.0.0.1`. A request that
