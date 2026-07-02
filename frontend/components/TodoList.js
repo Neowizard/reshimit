@@ -10,7 +10,7 @@ import {
     moveCompletedToBottom,
     moveCompletedToTop,
 } from "../lib/todoUtils";
-import {usePathname} from "next/navigation";
+import {getLangParam, resolveLang} from "../lib/lang";
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
 if (!BACKEND_URL) {
@@ -19,8 +19,11 @@ if (!BACKEND_URL) {
 
 
 export default function TodoList({lists, setLists, selectedList, inputRef, route, clientId}) {
-    const pathname = usePathname().substring(1);
-    const isLTR = pathname?.startsWith('LTR') || false;
+    const [rawLang, setRawLang] = useState(null);
+    useEffect(() => {
+        setRawLang(getLangParam());
+    }, []);
+    const {isLTR} = resolveLang(rawLang);
 
     const AVAILABLE_COLORS = [
         {name: 'red', value: 'bg-red-600', customName: isLTR ? 'red' : 'אדום'},

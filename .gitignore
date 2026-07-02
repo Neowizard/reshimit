@@ -59,3 +59,7 @@ frontend/.next/
 
 # stray process output
 nohup.out
+
+# local deployment scripts — reference the reshimit host / live server URL, keep out of git
+deploy.sh
+start.sh
